@@ -1,0 +1,274 @@
+\chapter{Gestión de Servicios}
+\label{problema-servicios}
+
+Este problema considera la planificación temporal de un conjunto de servicios atendiendo a diferentes restricciones de recursos requeridos por los servicios para su correcta gestión. La planificación establece el momento en que tendrá lugar el atendimiento de cada servicio dentro del horizonte de trabajo considerado. 
+
+En el momento de atender cada servicio se debe contar con los recursos materiales y trabajadores suficientes para gestionar satisfactoriamente el servicio, atendiendo a las múltiples coincidencias de servicios y empleo de recursos. Estas restricciones estarán asociadas a cada servicio y conforman las condiciones necesarias para atender al mismo.
+
+El objetivo del problema a resolver es que el tiempo de permanencia de los servicios en el sistema sea minimizado. Para ello, aunque es posible considerar otros criterios de planificación, en la resolución del problema se persigue que cada servicio sea gestionado lo más próximo posible a su tiempo de llegada llegada. Adicionalmente, y con el objetivo de valorar la calidad de las soluciones diseñadas, se dispondrán varias métricas que permiten dar una visión más amplia de las soluciones.
+
+Para la resolución del problema se propone el uso de una técnica de optimización exacta y de un algoritmo heurístico, que consideran la obtención de soluciones óptimas o aproximadas para un horizonte de trabajo cuya duración máxima es de 24 horas.
+
+\section{Descripción del problema}
+
+El problema de optimización de gestión de servicios persigue determinar qué trabajadores y qué recursos no humanos se emplearán para llevar a cabo el conjunto de servicios $T = \{t_1, t_2, \ldots, t_n\}$ de forma satisfactoria. En este sentido, tanto los trabajadores como los recursos involucrados son conocidos y están caracterizados para su asignación por el conjunto $R$, con $k$ tipos de recursos, $R = \{r_1, r_2, \ldots, r_k\}$. Para cada servicio $i$ se conoce la hora de llegada $h_i$, la duración $p_i$ del servicio en horas y el número de elementos del recurso $k$ requeridos por el servicio $i$, $r_{ik}$. La cantidad de recursos disponible a lo largo del horizonte de trabajo es conocida y caracterizada por $r_k$ para el recurso de tipo $k$. Además, se dispone de la hora de comienzo y finalización del horizonte de trabajo de trabajo, $H_1$ y $H_2$ respectivamente. 
+
+En las tablas \ref{ejemploilustrativo-servicios} y \ref{ejemploilustrativo-turno-recursos} se muestra un ejemplo ilustrativo de la información contenida en la descripción previa. Concretamente, para este ejemplo se disponen 4 tipos de recursos disponibles y 5 servicios con horas de inicio, duración del servicio y recursos requeridos determinados en las tablas citadas. 
+
+%\begin{table}[h!]
+%\centering
+%\begin{tabular}{ | c | c | c | c | c | c | }
+%\hline
+%	$t_i$ & $s_i$ & $p_i$ & $r_1$ & $...$ & $r_k$ \\ \hline
+%	1    & 1  & 1+3  & 2 & ... & 1 \\ \hline
+%	2    & 8  & 8+5  & 7 & ... & 0 \\ \hline
+%	...  &    &      &   & ... &  \\ \hline
+%	50   & 11 & 11+2 & 3 & ... & 2 \\ \hline
+%\end{tabular}
+%\caption{Esquema general de una solución}
+%\label{evaluacion}
+%\end{table}
+
+\begin{table}
+    \centering
+    \begin{tabular}{cc p{1.5em} p{1.5em} p{1.5em} p{1.5em}}
+        \toprule
+        {Comienzo horizonte de trabajo} & {Finalización horizonte de trabajo} & \multicolumn{4}{c}{Recursos disponibles}\\
+        \hline
+        $H_1$ & $H_2$ & $r_1$ & $r_2$ & $r_3$ & $r_4$ \\
+        \hline
+        09:00 & 17:00 & 3 & 2  & 2 & 2 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Ejemplo ilustrativo, horizonte de trabajo y recursos disponibles}
+    \label{ejemploilustrativo-turno-recursos}
+\end{table}
+
+\begin{table}
+    \centering
+\begin{tabular}{c|c|c|p{1.25em}p{1.25em}p{1.25em}p{1.25em}}
+    \toprule
+    Servicio ($t_i$)& Hora de llegada ($h_i$) & Duración del servicio ($p_i$) & \multicolumn{4}{c}{Recursos ($r_{ik}$)} \\
+                    &                       &                            & $r_{1}$ & $r_{2}$ & $r_{3}$ & $r_{4}$  \\
+    \hline
+    $t_1$ & 10:00 & 3    &   1  & 1     & 1     & 1    \\
+    \cline{1-7}
+    $t_2$ & 12:00 & 2    &   1  & 1     & 1     & 1    \\
+    \cline{1-7}
+    $t_3$ & 12:00 & 2    &   1  & 1     & 1     & 1    \\
+    \cline{1-7}
+    $t_4$ & 14:00 & 2   &    1  & 1     & 1     & 1    \\
+    \cline{1-7}
+    $t_5$ & 15:00 & 1    &   1  & 1     & 1     & 1    \\
+    \bottomrule
+\end{tabular}
+    \caption{Ejemplo ilustrativo, información de servicios}
+\label{ejemploilustrativo-servicios}
+\end{table}
+
+El objetivo del problema es establecer la hora de atendimiento $s_i$ para cada servicio $i$, lo más cercana posible a su hora de llegada $h_i$, satisfaciendo los requerimientos de recursos humanos y materiales del servicio $i$. En particular, se busca identificar asignaciones donde todos los servicios finalicen lo antes posible. Debe considerarse que, en función de las limitaciones en términos de personal y recursos disponibles, puede darse la situación de que haya servicios que no puedan ser atendidos en un momento dado y sea necesario retrasar su comienzo a la espera de los recursos necesarios. Asimismo, es posible que haya servicios que no puedan ser atendidos dentro del horizonte de trabajo en el que han llegado si los servicios planificados anteriormente se extienden durante todo el horizonte de trabajo. En este caso, los servicios no atendidos se considerarán en la resolución del problema de optimización correspondiente al siguiente horizonte de trabajo.
+
+\subsection{Servicios}
+
+Cada uno de los servicios está caracterizado por los siguientes elementos:
+
+\begin{itemize}
+    \item Descripción del servicio.
+    \item Hora prevista de comienzo del servicio.
+    \item Duración ininterrumpida del servicio.
+    \item Número y tipo de recursos requeridos para llevar a cabo el servicio. 
+\end{itemize}
+
+%\textcolor{red}{ESTO NO LO ESTAMOS HACIENDO ASÍ. ¿LO QUITAMOS? Por otro lado, se considera la realización de un máximo de 50 servicios diarios en un horizonte temporal máximo de una semana.} Sí, yo lo quitaría. Lo comento
+
+%\subsection{Trabajadores}
+
+%Cada uno de los trabajadores está caracterizado por los siguientes elementos:
+
+%\begin{itemize}
+%    \item Conjunto de competencias.
+%\end{itemize}
+
+%El número de trabajadores está limitado a un máximo de 200. 
+
+%\subsection{Recursos no humanos}
+
+%Se cuenta con un máximo de 20 recursos no humanos. 
+%Cada uno de los recursos está caracterizado por los siguientes elementos:
+
+%\begin{itemize}
+%    \item Está asignado a un servicio durante la totalidad del mismo.
+%    \item Puede ser asignado a servicios de forma ininterrumpida.
+%\end{itemize}
+
+\subsection{Recursos}
+
+Cada uno de los recursos puede representar un recurso material o un recurso humano. Los recursos se encuentran caracterizados por los siguientes elementos:
+\begin{itemize}
+    \item Identificador numérico del recurso.
+    \item Cantidad del recurso. 
+    %\item Está asignado a un servicio durante la totalidad del mismo.
+    %\item Puede ser asignado a servicios de forma ininterrumpida.
+\end{itemize}
+
+\subsection{Restricciones de los servicios y recursos}
+
+\begin{itemize}
+    \item Los servicios requieren de uno o más recursos materiales de un tipo determinado durante la duración del servicio.
+    \item Los servicios requieren de uno o varios tipos o categorías de trabajadores durante la realización del servicio.
+    %\item Todas las personas asignadas al servicio deben tener un nivel mínimo de competencia.
+\end{itemize}
+
+\subsection{Criterios de planificación}
+
+Se busca aquella planificación que haga que cada servicio sea realizado lo más próximo a su momento inicial satisfaciendo las restricciones previamente descritas.
+
+\subsection{Ejemplo ilustrativo}
+
+En esta sección se muestra un ejemplo ilustrativo asociado a los datos introducidos en las tablas \ref{ejemploilustrativo-servicios} y \ref{ejemploilustrativo-turno-recursos}, con 4 tipos de recursos disponibles y 5 servicios. La tabla \ref{ejemploilustrativo-resolucion} muestra la hora de llegada y horario de atendimiento de cada uno de los servicios en la resolución de este ejemplo. Por otra parte, la tabla \ref{ejemploilustrativo-resolucion-uso-de-recursos} muestra la disponibilidad de los diferentes recursos a lo largo del horizonte de trabajo. En este sencillo ejemplo, cabe destacar, que el servicio $t_3$ remarcado en la tabla \ref{ejemploilustrativo-resolucion}, ha sido atendido $1$ hora más tarde  desde su llegada. Esta situación es debida al bloqueo de los recursos $r_2$, $r_3$ y $r_4$ en la franja horaria de las 12:00 por los servicios $t_1$ y $t_2$, aspecto destacado en la tabla \ref{ejemploilustrativo-resolucion-uso-de-recursos} en la que se subrayan los recursos a $0$ en la franja horaria de las 12:00.
+
+\begin{table}
+\centering
+\begin{tabular}{ccc}
+\toprule
+    Servicio ($t_i$)& Hora de llegada ($h_i$)& Hora de atendimiento ($s_i$) \\
+%    \hline
+%                    &                       &                             \\
+    \hline
+    $t_1$ & 10:00 & 10:00     \\
+    \cline{1-3}
+    $t_2$ & 12:00 & 12:00      \\
+    \cline{1-3}
+    $\underline{t_3}$ & \underline{12:00} & \underline{13:00} \\
+    \cline{1-3}
+    $t_4$ & 14:00 & 14:00 \\
+    \cline{1-3}
+    $t_5$ & 15:00 & 15:00  \\
+\bottomrule
+\end{tabular}
+\caption{Ejemplo ilustrativo, hora de llegada y atendimiento por cada servicio}
+\label{ejemploilustrativo-resolucion}
+\end{table}
+
+\begin{table}
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|c|c}
+\toprule
+    Recurso ($r_i$) & 09:00 & 10:00 & 11:00 & \underline{12:00} & 13:00 & 14:00 & 15:00 & 16:00 \\
+     %&  &  &  & & & & & \\
+    \hline
+    $r_1$ & 3 & 2 & 2 & 1 & 1 & 1 & 1 & 3 \\
+    \cline{1-9}
+    $r_2$ & 2 & 1 & 1 & \underline{0} & 0 & 0 & 0 & 2 \\
+    \cline{1-9}
+    $r_3$ & 2 & 1 & 1 & \underline{0} & 0 & 0 & 0 & 2\\
+    \cline{1-9}
+    $r_4$ & 2 & 1 & 1 & \underline{0} & 0 & 0 & 0 & 2\\
+\bottomrule
+\end{tabular}
+%\end{center}
+    \caption{Ejemplo ilustrativo, uso de recursos a lo largo del horizonte de trabajo}
+\label{ejemploilustrativo-resolucion-uso-de-recursos}
+\end{table}
+
+\section{Algoritmo de resolución}
+
+El problema es resuelto por horizontes de trabajo, dado que los recursos varían de un horizontes de trabajo al siguiente. 
+%Por tanto, en cada turno de trabajo consideraremos un {\it Job scheduling and resource allocation problem with parallel machines}. 
+Se considera que la asignación de recursos para la realización de cada servicio es un dato conocido y determinístico. %Tener en cuenta que en un sistema realista, los tiempos de procesamiento de los servicios se ven afectados por muchas configuraciones prácticas: efecto de cansancio o aprendizaje de los trabajadores, diferentes cantidades de recursos asignados a los trabajos, etc.
+El objetivo del problema es minimizar la suma de los tiempos de estancia de los servicios, es decir, el tiempo de espera más la duración del servicio. %El objetivo del problema es minimizar la suma de los tiempos que esperan los servicios a ser atendidos. 
+Un servicio es acabado preferentemente por el equipo humano que lo comienza; es decir, que se comienza y finaliza en el mismo horizonte de trabajo de trabajo.
+
+Se propone un algoritmo GRASP para construir soluciones de comienzo. Este algoritmo ordena los servicios de menor a mayor tiempo de llegada y en cada paso de la fase constructiva, seleccionamos uno de los $l$ primeros servicios de la lista. Siendo $l$ un parámetro del algoritmo.
+
+%\begin{itemize}
+%    \item $T$. Conjunto de $n$ servicios, $T = {1,2,...,n}$.
+%    \item $R$. Conjunto de $k$ tipos de recursos, $R = {1,2,...,k}$.
+%    \item $r_k$. Número de elementos del recurso $k$.
+%    \item $r_{ik}$. Número de elementos del recurso $k$ requeridos por el servicio $i$.
+%    \item $h_i$. Hora de llegada del servicio $i$.
+%    \item $p_i$. Tiempo de procesamiento del servicio $i$ con la asignación de recurso dada como entrada.
+%\end{itemize}
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+    \WHILE{no se satisfaga el criterio de parada} 
+           \STATE $T \leftarrow$ Conjunto de servicios ordenados de menor a mayor tiempo de llegada 
+           \STATE $Solucion \leftarrow \emptyset$
+           \WHILE{$T \neq  \emptyset$}    
+                \STATE Generar la LRC con los $l$ primeros servicios en $T$.
+                \STATE Seleccionar al azar $t^* \in LRC$
+                \STATE $Solucion = Solucion \cup \{t^*\}$
+                \STATE $T = T \setminus \{t^*\}$
+                \STATE Insertar el servicio $t^*$ en su línea temporal en la hora más cercana a su hora de llegada $h_i$, dentro de la hora de comienzo $H_1$ y fin $H_2$ del horizonte de trabajo y cumpliendo la factibilidad de asignación de recursos a los servicios simultáneos.
+           \STATE Actualizar (Soluci\'on, MejorSolucion);
+           \ENDWHILE
+           \STATE Mejorar\_Soluci\'on (Soluci\'on);
+      \ENDWHILE
+    \caption{GRASP}
+\end{algorithmic}    
+\end{algorithm}
+
+\section{Formulación matemática}
+
+Considerando la resolución del problema por horizontes de trabajo, se espera que el número de servicios a realizar no sea elevado. Por tanto, se propone como alternativa la resolución óptima del problema. Para ello, se modeliza el problema a través de un GSPP (Generalized Set-Partitioning Problem). 
+
+Se realiza el símil con un problema de asignación de tareas a máquinas que dispone de tantas máquinas como servicios a realizar. Para minimizar el número de columnas del modelo, se asume, sin pérdida de generalidad que los $n$ servicios están ordenados de menor a mayor hora de llegada, y que cada servicio $i$ es asignado a la máquina $i$.
+
+%A continuación se ilustra la idea mediante un ejemplo. Se parte de la suposición de que se deben realizar dos servicios $t_i$ ($i = {1,2}$), cada uno de ellos con un tiempo de llegada $h_i$, con una duración del servicio $p_i$ y con una cantidad de recursos a utilizar $r_{ik}$. Se supone que cada servicio puede hacer uso de tres tipos de recursos diferentes $k = \{1, 2, 3\}$; por ejemplo, dos tipos de empleados diferentes y una lancha. La Tabla \ref{servicios} muestra estos datos. Además, habrá un número máximo de empleados de cada tipo y un número máximo de lanchas disponibles en cada turno de trabajo, información disponible en la Tabla \ref{recursos}.
+
+%El horizonte de planificación es dividido en espacios de 30 minutos (\textit{slots}) para mostrar este ejemplo. Por tanto, si el turno de trabajo comienza a las 8:00 AM y finaliza a las 15:00 PM, se disponen de 14 instantes de tiempo. Esto se puede variar para hacer los \textit{slots} más finos en función de la duración de los servicios.
+
+%Los tiempos de servicio que aparecen en la Tabla \ref{matrices} son la suma del tiempo de procesamiento más los \textbf{slots} de tiempo que el barco espera a ser atendido.
+
+Definamos el modelo GSPP. El conjunto de columnas se denota por $\Omega$. Definimos tres matrices $A$, $B$ y $D$ con $|\Omega|$ columnas. La matriz $A = (A_{i\omega})$ contiene una fila para cada servicio, y $A_{i\omega} = 1$ si y solo si la columna representa una asignación del servicio $i \in T$. Cada columna de $A$ contiene exactamente un elemento distinto de cero. La matriz $B = (B_{p\omega})$ contiene una fila por posición $(servicio, tiempo)$. La entrada $B_{p\omega}$ es igual a 1 si y solo si la posición $p \in P$ está contenida en la asignación que representa la columna $\omega$. La matriz $D = (D_{r\omega})$ contiene una fila por cada tipo de recurso requerido para realizar los servicios. La entrada $D_{r\omega}$ contiene el número de elementos del recurso tipo $r$ requerido por el servicio asignado en esa columna. El coste $c_{\omega}$ de cualquier columna $\omega$ es el tiempo del servicio (duración del servicio + espera) de la asignación de posición respectiva y puede multiplicarse por el factor de prioridad si es necesario. Una variable binaria $x_{\omega}$ es igual a uno si se usa la  columna $\omega$ en la solución, y cero en otro caso. Con estas definiciones podemos presentar la formulación GSPP del Problema de Gestión de Servicios.
+
+$$ \min \sum_{\omega \in \Omega} c_{\omega}x_{\omega}$$
+
+\hspace{125 pt} s.t.
+
+$$\sum_{\omega \in \Omega} A_{i\omega} x_{\omega} = 1, \forall i \in T$$
+
+$$\sum_{\omega \in \Omega} B_{p\omega} x_{\omega} \leq 1, \forall p \in P$$
+
+$$\sum_{\omega \in \Omega} D_{r\omega} x_{\omega} \leq M_R, \forall r \in R$$
+
+$$x_{\omega} \in \{0, 1\}$$
+
+Este modelo minimiza la suma de los tiempos de estancia de los servicios, es decir, el tiempo de espera más la duración del servicio. 
+
+\section{Métricas}
+
+Con el objetivo de evaluar la calidad de las soluciones obtenidas, se proponen las siguientes métricas. En su mayoría se encuentran relacionadas con el tiempo que requiere cada servicio.
+
+A continuación se listan las métricas de las planificaciones:
+\begin{itemize}
+   \item Servicio con retraso m\'aximo de atendimiento, $max(d(i))$, siendo $d(i)$ la diferencia entre la hora de llegada y la hora de atendimiento del servicio $i$,
+   \item Servicio con retraso mínimo de atendimiento, $min(d(i))$, siendo $d(i)$ la diferencia entre la hora de llegada y la hora de atendimiento del servicio $i$,
+   \item M\'aximo tiempo de realización, $max(d(i) + p_i)$, siendo $d(i)$ la diferencia entre la hora llegada y la hora de atendimiento del servicio $i$ con $p_i$ como la duración del servicio $i$,
+   \item Número de servicios no atendidos dentro de la duración fijada del horizonte de trabajo, $NS$
+\end{itemize}
+
+\section{Evaluación del algoritmo}
+
+En esta sección se muestran un conjunto de experimentos realizados con instancias de diferentes parámetros del problema y configuraciones. La tabla \ref{evaluacion} muestra los resultados obtenidos. Se consideran instancias de casos con múltiples horas de inicio y fin del horizonte de trabajo, número de servicios y recursos, y configuraciones diversas de requerimientos de recursos por cada servicio. En la tabla se muestran las métricas relacionadas con el retraso mínimo y máximo de atendimiento de cada servicio, el máximo tiempo de realización y el número de servicios no atendidos dentro del horizonte de trabajo. 
+
+\begin{table*}
+\centering
+\begin{tabular}{cccccccc}
+\toprule
+\multicolumn{4}{c}{Características de las instancias} & \multicolumn{4}{c}{Métricas} \\
+\midrule
+$|T|$ & $|R|$ & $H_1$ & $H_2$ & $max(d(i))$ & $min(d(i))$ & $max(d(i)+p_i)$ & $NS$ \\
+\midrule
+9 & 8 & 14:00 & 23:00 & 0 & 0 & 2 & 0\\
+11 & 5 & 09:00 & 18:00 & 0 & 0 & 3 & 0\\
+16 & 15 & 00:00 & 23:00 & 0 & 0 & 0 & 1\\
+17 & 15 & 00:00 & 16:00 & 0 & 0 & 2 & 0\\
+34 & 10 & 00:00 & 23:00 & 8 & 0 & 9 & 8\\
+\bottomrule
+\end{tabular}
+\caption{Resultados obtenidos de algunas planificaciones y sus métricas}
+\label{evaluacion}
+\end{table*}
+
