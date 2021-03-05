@@ -9,6 +9,7 @@
 \renewcommand{\contentsname}{Contenidos}
 \renewcommand{\chaptername}{}
 \renewcommand\tablename{Tabla}
+\renewcommand\figurename{Figura}
 \makeatletter
 \renewcommand{\ALG@name}{Algoritmo}
 \makeatother
@@ -23,8 +24,7 @@
 \coordinate [below=12cm] (midpoint) at (current page.north);
 \node at (current page.north west)
 {\begin{tikzpicture}[remember picture,overlay]
-%\node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{frontpage.png}}; %
-\node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{images/portada-materiales.png}}; %Background image
+\node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{images/portada-materiales.png}}; % Background image
 %\draw[anchor=north] (midpoint) node [fill=ocre!30!white,fill opacity=0.6,text opacity=1,inner sep=1cm]{\Huge\centering\bfseries\sffamily\parbox[c][][t]{\paperwidth}{\centering The Search for a Title\\[15pt] % Book title
 %{\Large A Profound Subtitle}\\[20pt] % Subtitle
 %{\huge Dr. John Smith}}}; % Author name
@@ -75,21 +75,26 @@
 
 \hyphenation{determinada habilidades capacidades eficientemente trabajadores algoritmo}
 
-\part{Comunidades virtuales}
-\include{material-lectura-capitulos/comunidades-virtuales}
 
+\part{Comunidades virtuales}
+
+\include{material-lectura-capitulos/comunidades-virtuales}
 \include{material-lectura-capitulos/influencers}
 
-\part{El perfil profesional del community manager}
-\include{material-lectura-capitulos/el-perfil-profesional-del-community-manager}
+\part{El Community Manager}
+
+\include{material-lectura-capitulos/el-community-manager}
 
 \part{Tiendas de comercio electrónico}
+
 \include{material-lectura-capitulos/tiendas-comercio-electronico}
 
 \part{Blogs}
+
 \include{material-lectura-capitulos/blogs}
 
-\part{Redes sociales}
+\part{Redes Sociales}
+
 \include{material-lectura-capitulos/facebook}
 \include{material-lectura-capitulos/linkedin}
 \include{material-lectura-capitulos/twitter}
@@ -98,13 +103,18 @@
 \include{material-lectura-capitulos/social-media-plan}
 
 \part{Posicionamiento web}
+
 \include{material-lectura-capitulos/posicionamiento-web}
 
-\part{Email marketing}
+\part{E-mail marketing}
+
 \include{material-lectura-capitulos/email-marketing}
 
 \part{Reputación online}
+
 \include{material-lectura-capitulos/reputacion-online}
+
+
 
 %----------------------------------------------------------------------------------------
 %	INDEX
